@@ -1,6 +1,5 @@
 const { expect } = require("chai");
-//const { ethers } = require("hardhat");
-require("@nomiclabs/hardhat-ethers");
+const { ethers } = require("hardhat");
 
 describe("DOB", function () {
   let DOB;
@@ -10,6 +9,8 @@ describe("DOB", function () {
   let addr2;
   let addrs;
 
+  let addrDob;
+
   const BACKED_ASSET_AMOUNT = ethers.parseEther("0.0007");
   const MAX_SUPPLY = 100;
 
@@ -18,6 +19,7 @@ describe("DOB", function () {
     DOB = await ethers.getContractFactory("DOB");
     // 部署合约时设置最大供应量为100
     dob = await DOB.deploy(MAX_SUPPLY);
+    addrDob = await dob.getAddress();
   });
 
   describe("部署", function () {
@@ -124,7 +126,7 @@ describe("DOB", function () {
     it("应该拒绝直接ETH转账", async function () {
       await expect(
         addr1.sendTransaction({
-          to: await dob.getAddress(),
+          to: addrDob,
           value: ethers.parseEther("0.001")
         })
       ).to.be.revertedWith("Direct ETH transfer not allowed");
