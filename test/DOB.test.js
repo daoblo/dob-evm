@@ -11,14 +11,20 @@ describe("DOB", function () {
   let addrs;
 
   const BACKED_ASSET_AMOUNT = ethers.parseEther("0.0007");
+  const MAX_SUPPLY = 100;
 
   beforeEach(async function () {
     [owner, addr1, addr2, ...addrs] = await ethers.getSigners();
     DOB = await ethers.getContractFactory("DOB");
-    dob = await DOB.deploy();
+    // 部署合约时设置最大供应量为100
+    dob = await DOB.deploy(MAX_SUPPLY);
   });
 
-  describe("基础功能", function () {
+  describe("部署", function () {
+    it("应该正确设置最大供应量", async function () {
+      expect(await dob.maxSupply()).to.equal(MAX_SUPPLY);
+    });
+
     it("应该正确设置名称和符号", async function () {
       expect(await dob.name()).to.equal("DOBName");
       expect(await dob.symbol()).to.equal("DOBSymbol");
@@ -30,6 +36,12 @@ describe("DOB", function () {
       const tokenId = 1;
       await dob.connect(addr1).mint({ value: BACKED_ASSET_AMOUNT });
       expect(await dob.tokenURI(tokenId)).to.equal(newURI + tokenId);
+    });
+
+    it("应该禁止非所有者设置baseURI", async function () {
+      const newURI = "https://new.api.dob.com/token/";
+      await expect(dob.connect(addr1).setBaseURI(newURI))
+        .to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
 
@@ -50,7 +62,30 @@ describe("DOB", function () {
       ).to.be.revertedWith("Incorrect ETH amount");
     });
 
+    it("应该在达到最大供应量时拒绝铸造", async function () {
+      // 部署一个最大供应量为2的新合约
+      const smallDob = await DOB.deploy(2);
 
+      // 铸造两个代币
+      await smallDob.connect(addr1).mint({ value: BACKED_ASSET_AMOUNT });
+      await smallDob.connect(addr1).mint({ value: BACKED_ASSET_AMOUNT });
+
+      // 第三次铸造应该失败
+      await expect(
+        smallDob.connect(addr1).mint({ value: BACKED_ASSET_AMOUNT })
+      ).to.be.revertedWith("Max supply reached");
+    });
+
+    it("应该在maxSupply为0时允许无限铸造", async function () {
+      const unlimitedDob = await DOB.deploy(0);
+
+      // 连续铸造多个代币
+      for (let i = 0; i < 5; i++) {
+        await unlimitedDob.connect(addr1).mint({ value: BACKED_ASSET_AMOUNT });
+      }
+
+      expect(await unlimitedDob.ownerOf(5)).to.equal(addr1.address);
+    });
   });
 
   describe("销毁和提取ETH", function () {

@@ -13,6 +13,8 @@ contract DOB is ERC721, Ownable {
     mapping(uint256 => uint256) public backedAssets;
     // 铸造DOB所需的ETH数量
     uint256 public constant BACKED_ASSET_AMOUNT = 0.0007 ether;
+    // 最大铸造数量，0表示不限制
+    uint256 public immutable maxSupply;
 
     event TokenMinted(address indexed to, uint256 indexed tokenId);
     event TokensMinted(address indexed to, uint256 indexed lastTokenId, uint256 amount);
@@ -20,7 +22,8 @@ contract DOB is ERC721, Ownable {
 
     string private _baseTokenURI;
     
-    constructor() ERC721("DOBName", "DOBSymbol") {
+    constructor(uint256 _maxSupply) ERC721("DOBName", "DOBSymbol") {
+        maxSupply = _maxSupply;
         _baseTokenURI = "https://api.dob.com/token/";
     }
     
@@ -34,6 +37,13 @@ contract DOB is ERC721, Ownable {
 
     // 铸造新的DOB代币
     function mintOne(address receiver) private returns (uint256) {
+        uint256 currentSupply = _tokenIds.current();
+        // 检查是否超过最大铸造数量限制
+        require(
+            maxSupply == 0 || currentSupply < maxSupply,
+            "Max supply reached"
+        );
+        
         _tokenIds.increment();
         uint256 newTokenId = _tokenIds.current();
         
@@ -54,6 +64,7 @@ contract DOB is ERC721, Ownable {
 
     // 用于逻辑展示，可能有性能问题，实际使用时应优化
     function mintMany(uint256 amount) external payable returns (uint256) {
+        require(amount > 1, "Incorrect amount");
         require(msg.value == BACKED_ASSET_AMOUNT * amount, "Incorrect ETH amount");
         
         uint256 newTokenId;
