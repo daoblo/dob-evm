@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract DOB2 is ERC721, Ownable {
+contract DOB2 is ERC721, Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
@@ -97,7 +98,7 @@ contract DOB2 is ERC721, Ownable {
     }
 
     // 销毁DOB2代币并提取ERC20代币
-    function melt(uint256 tokenId) external {
+    function melt(uint256 tokenId) external nonReentrant {
         require(ownerOf(tokenId) == msg.sender, "Not token owner");
         
         uint256 tokenToReturn = backedAssets[tokenId];

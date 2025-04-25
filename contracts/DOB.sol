@@ -4,8 +4,9 @@ pragma solidity ^0.8.19;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract DOB is ERC721, Ownable {
+contract DOB is ERC721, Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
@@ -77,7 +78,7 @@ contract DOB is ERC721, Ownable {
     }
 
     // 销毁DOB代币并提取ETH
-    function melt(uint256 tokenId) external {
+    function melt(uint256 tokenId) external nonReentrant {
         require(ownerOf(tokenId) == msg.sender, "Not token owner");
         
         uint256 ethToReturn = backedAssets[tokenId];
